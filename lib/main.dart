@@ -1,136 +1,119 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:image/image.dart' as img;
 
-void main() {
-  runApp(MyApp());
-}
+import 'package:image/image.dart' as imeg;
+import 'package:http/http.dart' as http;
+import 'dart:io' as io;
 
-class ImgDetails {
-
-  final int? width;
-  final int? height;
-
-  /// Returns the pixel color from its coordinates:
-  /// (0,0) top-left; To (width-1, height-1) bottom-right.
-  final Color Function(int x, int y)? pixelColorAt;
-
-  /// Returns the pixel color from its coordinates:
-  /// (-1, -1) top-left; To (1, 1) bottom-right.
-  final Color Function(Alignment alignment)? pixelColorAtAlignment;
-
-  /// The image itself, as a ui.Image.
-  /// Usually you should not read from the image directly, but through
-  /// the helper methods `pixelColorAt` and `pixelColorAtAlignment`.
-  // final ui.Image? uiImage;
-
-  /// The image itself as a ByteData.
-  /// Usually you should not read from the image directly, but through
-  /// the helper methods `pixelColorAt` and `pixelColorAtAlignment`.
-  // final ByteData? byteData;
-
-  /// Returns true when the image is downloaded and available.
-  // bool get hasImage => uiImage != null;
-
-  ImgDetails({
-    this.width,
-    this.height,
-    // this.uiImage,
-    // this.byteData,
-    this.pixelColorAt,
-    this.pixelColorAtAlignment,
-  });
-}
+import 'screens/comparison_screen.dart';
 
 class MyApp extends StatelessWidget {
-
-  late img.Image photo;
-
-  void setImageBytes(imageBytes) {
-    print("setImageBytes");
-    List<int> values = imageBytes.buffer.asUint8List();
-    print(values);
-    photo = img.decodeImage(values)!;
-  }
-
-  // image lib uses uses KML color format, convert #AABBGGRR to regular #AARRGGBB
-  int abgrToArgb(int argbColor) {
-    print("abgrToArgb");
-    int r = (argbColor >> 16) & 0xFF;
-    int b = argbColor & 0xFF;
-    return (argbColor & 0xFF00FF00) | (b << 16) | r;
-  }
-
-  // FUNCTION
-
-  Future<Color> _getColor() async {
-    print("_getColor");
-    Uint8List data;
-
-    data = (await rootBundle.load('packages/SS_test_task_2/assets/img1.png')).buffer.asUint8List();
-
-
-    print("setImageBytes....");
-    setImageBytes(data);
-
-//FractionalOffset(1.0, 0.0); //represents the top right of the [Size].
-    double px = 1.0;
-    double py = 0.0;
-
-    int pixel32 = photo.getPixelSafe(px.toInt(), py.toInt());
-    int hex = abgrToArgb(pixel32);
-    print("Value of int: $hex ");
-
-    return Color(hex);
-  }
-
-
-  Future<void> someFunc() async {
-    var img1 = Image.asset('assets/img1.png');
-    var img2 = Image.asset('assets/img2.png');
-    // img1
-    // .
-    // DefaultAssetBundle.of(context);
-
-    // final Uint8List inputImg1 = (await rootBundle.load("assets/img1.png"))
-    //     .buffer.asUint8List();
-    // final Uint8List inputImg2 = (await rootBundle.load("assets/img2.png"))
-    //     .buffer.asUint8List();
-    // final decoder = img.PngDecoder();
-    // final decodedImg1 = decoder.decodeImage(inputImg1);
-    // final decodedBytes1 = decodedImg1?.getBytes(format: img.Format.rgb);
-    // final decodedImg2 = decoder.decodeImage(inputImg2);
-    // final decodedBytes2 = decodedImg2?.getBytes(format: img.Format.rgb);
-
-    // print("decodedImg2");
-  }
-
   @override
   Widget build(BuildContext context) {
-    someFunc();
-    _getColor();
-    // const imgData = context.get
-    // AssetBundle bundle = DefaultAssetBundle.of(context);
-    // final Uint8List inputImg1 = (bundle.load("assets/img1.png"))
-    //     .buffer.asUint8List();
-
-    // print(img1.hashCode);
-
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text("Test Task"),
-        ),
-        body: Center(
-          child: Text("TEXT"),
-        ),
+      routes: {ComparisonScreen.routeName: (ctx) => ComparisonScreen()},
+      home: Builder(
+        builder: (context) => Scaffold(
+            appBar: AppBar(
+              title: const Text("Test Task"),
+            ),
+            body: Column(
+              children: [
+                Row(children: [
+                  Expanded(
+                    child: Image.asset('assets/img1.png'),
+                  ),
+                  Expanded(
+                    child: Image.asset('assets/img2.png'),
+                  ),
+                ]),
+                ElevatedButton(
+                  child: Text("Compare the two images"),
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(ComparisonScreen.routeName);
+                  },
+                ),
+              ],
+            )),
       ),
     );
   }
+}
+
+Uri imgUrl1 = Uri.parse(
+    'https://raw.githubusercontent.com/lukatriska/comparing-images-flutter/master/assets/img1.png');
+Uri imgUrl2 = Uri.parse(
+    'https://raw.githubusercontent.com/lukatriska/comparing-images-flutter/master/assets/img2.png');
+
+int selectColor(num diffAtPixel, int firstPixel, int secondPixel) {
+  int result;
+
+  var r1 = imeg.getRed(firstPixel);
+  var g1 = imeg.getGreen(firstPixel);
+  var b1 = imeg.getBlue(firstPixel);
+  var r2 = imeg.getRed(secondPixel);
+  var g2 = imeg.getGreen(secondPixel);
+  var b2 = imeg.getBlue(secondPixel);
+
+  if (diffAtPixel == 0) {
+    result = imeg.Color.fromRgba(r1, g1, b1, 50);
+  } else if (r1 == 0 && g1 == 0 && b1 == 0) {
+    result = imeg.Color.fromRgba(r2, g2, b2, 50);
+  } else if (r2 == 0 && g2 == 0 && b2 == 0) {
+    result = imeg.Color.fromRgba(r1, g1, b1, 50);
+  } else {
+    result = imeg.Color.fromRgba(255, 0, 0, 255);
+  }
+
+  return result;
+}
+
+void compareImages(dynamic firstImgSrc, dynamic secondImgSrc) async {
+  imeg.Image? img1;
+  imeg.Image? img2;
+
+  var response1 = await http.get(firstImgSrc);
+  img1 = imeg.decodeImage(response1.bodyBytes);
+  var response2 = await http.get(secondImgSrc);
+  img2 = imeg.decodeImage(response2.bodyBytes);
+
+  var width = img1?.width;
+  var height = img1?.height;
+
+  var diffImg = imeg.Image(width!, height!);
+
+  for (var i = 0; i < width; i++) {
+    int? p1, p2;
+    num pDiff;
+
+    for (var j = 0; j < height; j++) {
+      p1 = img1!.getPixel(i, j);
+      p2 = img2!.getPixel(i, j);
+
+      var r1 = imeg.getRed(p1);
+      var g1 = imeg.getGreen(p1);
+      var b1 = imeg.getBlue(p1);
+      var r2 = imeg.getRed(p2);
+      var g2 = imeg.getGreen(p2);
+      var b2 = imeg.getBlue(p2);
+
+      pDiff = ((r1 - r2).abs() + (g1 - g2).abs() + (b1 - b2).abs() / 255) / 3;
+
+      diffImg.setPixel(i, j, selectColor(pDiff, p1.toInt(), p2.toInt()));
+    }
+  }
+
+  io.File('/Users/luka-marko/IdeaProjects/SS_test_task_2/assets/DiffImg.png')
+      .writeAsBytes(
+    imeg.encodePng(diffImg),
+  );
+}
+
+void main() {
+  compareImages(imgUrl1, imgUrl2);
+
+  runApp(MyApp());
 }
