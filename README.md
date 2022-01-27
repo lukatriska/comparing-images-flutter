@@ -1,8 +1,9 @@
-![Uploading Simulator Screen Recording - iPhone 13 - 2022-01-27 at 13.17.05.gif…]()
+![Simulator Screen Recording - iPhone 13 - 2022-01-27 at 13 17 05](https://user-images.githubusercontent.com/24692004/151349739-54d79cd0-fbf2-4037-81e9-ad06a3546bec.gif)
 
 # ss_test_task_2
 
 A new Flutter project.
+
 
 ## Getting Started
 
